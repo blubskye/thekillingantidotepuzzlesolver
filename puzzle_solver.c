@@ -34,7 +34,7 @@ bool backtrack(Puzzle *p, int row, int col);
 void print_grid(const Puzzle *p);
 int sum_row(const Puzzle *p, int row, int up_to_col);
 int sum_col(const Puzzle *p, int col, int up_to_row);
-int read_ints(int *arr, int max_size);
+int read_ints(int *arr);
 char* trim_whitespace(char *str);
 
 int main(void) {
@@ -42,12 +42,12 @@ int main(void) {
 
     // Step 1: Input column sums
     printf("Enter column sums (space-separated, e.g., '8 8 3 9 3 12 8 6'):\n");
-    p.num_cols = read_ints(p.col_sums, MAX_COLS);
+    p.num_cols = read_ints(p.col_sums);
     if (p.num_cols == 0) return 1;
 
     // Step 2: Input row sums
     printf("Enter row sums (space-separated, e.g., '8 7 6 9 8 4 9 6'):\n");
-    p.num_rows = read_ints(p.row_sums, MAX_ROWS);
+    p.num_rows = read_ints(p.row_sums);
     if (p.num_rows == 0) return 1;
 
     // Verify total sums match
@@ -129,9 +129,14 @@ void print_grid(const Puzzle *p) {
     printf("\nYour flawless solved grid~ ♡\n");
     printf("Column sums →");
     for (int i = 0; i < p->num_cols; i++) printf(" %d", p->col_sums[i]);
-    printf("\n             ┌%s┐\n", "─" * (p->num_cols * 3 + p->num_cols - 1));  // C23 repeats? Nah, we'll loop
-    char sep[256] = {0};
-    for (int i = 0; i < p->num_cols * 3 + p->num_cols - 1; i++) sep[i] = '─';
+    printf("\n");
+
+    // Build separator string
+    int sep_len = p->num_cols * 4 - 1;  // Adjusted for " │ " (3 chars + space)
+    char sep[512] = {0};  // Bigger buffer for safety
+    memset(sep, '-', sep_len);  // Use '-' for ASCII safe, or '─' if UTF-8 env supports
+    sep[sep_len] = '\0';
+
     printf("             ┌%s┐\n", sep);
 
     for (int r = 0; r < p->num_rows; r++) {
@@ -143,7 +148,7 @@ void print_grid(const Puzzle *p) {
         printf("│\n");
         if (r < p->num_rows - 1) {
             printf("             │");
-            for (int i = 0; i < p->num_cols * 3 + p->num_cols - 2; i++) printf(" ");
+            for (int i = 0; i < sep_len; i++) printf(" ");
             printf("│\n");
         }
     }
