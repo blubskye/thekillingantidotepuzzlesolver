@@ -5,7 +5,7 @@
 ### *"I'll solve every puzzle... just for you~"*
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-red.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![C](https://img.shields.io/badge/C-C11-A8B9CC.svg)](https://en.wikipedia.org/wiki/C11_(C_standard_revision))
+[![C](https://img.shields.io/badge/C-C23-A8B9CC.svg)](https://en.wikipedia.org/wiki/C23_(C_standard_revision))
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org/)
 [![Go](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
 [![MSan](https://img.shields.io/badge/MSan-Clean-brightgreen.svg)](#sanitizer--fuzzer-testing)
@@ -118,7 +118,7 @@ cd thekillingantidotepuzzlesolver
 make all
 
 # Or build size-optimized with UPX
-gcc -std=c11 -Os -flto -s -ffunction-sections -fdata-sections \
+gcc -std=c23 -Os -flto -s -ffunction-sections -fdata-sections \
     -Wl,--gc-sections -fno-asynchronous-unwind-tables -fno-ident \
     -Wl,--build-id=none -o puzzle_solver puzzle_solver.c
 upx --best puzzle_solver  # optional
@@ -134,7 +134,7 @@ upx --best puzzle_solver  # optional
 
 ```bash
 # Requires mingw-w64
-x86_64-w64-mingw32-gcc -std=c11 -Os -flto -s -ffunction-sections -fdata-sections \
+x86_64-w64-mingw32-gcc -std=c23 -Os -flto -s -ffunction-sections -fdata-sections \
     -Wl,--gc-sections -fno-asynchronous-unwind-tables -fno-ident \
     -Wl,--build-id=none -mcrtdll=ucrt -o puzzle_solver.exe puzzle_solver.c
 upx --best puzzle_solver.exe  # optional

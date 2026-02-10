@@ -9,7 +9,7 @@
 #   clean      - Remove all build artifacts
 
 SRC       = puzzle_solver.c
-CFLAGS_COMMON = -std=c11 -Wall -Wextra -Wpedantic
+CFLAGS_COMMON = -std=c23 -Wall -Wextra -Wpedantic
 
 CC_GCC    = gcc
 CC_CLANG  = clang
