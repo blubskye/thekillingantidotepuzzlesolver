@@ -91,7 +91,7 @@ Solutions are displayed with symbols for clarity:
 
 ## Pre-built Binaries
 
-Pre-compiled, UPX-compressed binaries are available in [Releases](https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver/releases):
+Pre-compiled, UPX-compressed binaries are available in [Releases](https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver/releases):
 
 | Platform | Binary | Size |
 |----------|--------|------|
@@ -111,7 +111,7 @@ Just download and run -- no dependencies needed.
 
 ```bash
 # Clone the repository
-git clone https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver.git
+git clone https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver.git
 cd thekillingantidotepuzzlesolver
 
 # Build (requires gcc)
@@ -153,7 +153,7 @@ upx --best puzzle_solver.exe  # optional
 
 ```bash
 # Clone the repository
-git clone https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver.git
+git clone https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver.git
 cd thekillingantidotepuzzlesolver
 
 # Install Python 3.12+ if not already installed
@@ -242,7 +242,7 @@ go version
 
 ```bash
 # Clone the repository
-git clone https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver.git
+git clone https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver.git
 cd thekillingantidotepuzzlesolver
 
 # Build the binary
@@ -275,7 +275,7 @@ go version
 
 ```powershell
 # Clone the repository
-git clone https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver.git
+git clone https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver.git
 cd thekillingantidotepuzzlesolver
 
 # Build the executable
