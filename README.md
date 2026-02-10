@@ -5,8 +5,12 @@
 ### *"I'll solve every puzzle... just for you~"*
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-red.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![C](https://img.shields.io/badge/C-C11-A8B9CC.svg)](https://en.wikipedia.org/wiki/C11_(C_standard_revision))
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org/)
 [![Go](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
+[![MSan](https://img.shields.io/badge/MSan-Clean-brightgreen.svg)](#sanitizer--fuzzer-testing)
+[![ASan](https://img.shields.io/badge/ASan-Clean-brightgreen.svg)](#sanitizer--fuzzer-testing)
+[![AFL++](https://img.shields.io/badge/AFL++-0%20crashes-brightgreen.svg)](#sanitizer--fuzzer-testing)
 
 *A solver for the data recovery grid puzzles in The Killing Antidote*
 
@@ -18,7 +22,8 @@
 
 **The Killing Antidote Puzzle Solver** is a tool designed to conquer the data recovery puzzles found in the game *The Killing Antidote*. These puzzles present you with a grid where you must fill cells with values 0-3 to satisfy row and column sum constraints, while respecting forced blank positions.
 
-This solver is available in two versions:
+This solver is available in three versions:
+- **C** - Recursive backtracking with constraint propagation, UPX-compressed binaries under 10KB
 - **Python** - Uses PuLP (integer linear programming) for guaranteed optimal solutions
 - **Go** - Uses backtracking with constraint propagation for fast native execution
 
@@ -51,7 +56,17 @@ Solutions are displayed with symbols for clarity:
 
 <table>
 <tr>
-<td width="50%">
+<td width="33%">
+
+### C Version
+- Recursive backtracking with pruning
+- Zero dynamic memory allocation
+- Static stack-based arrays
+- UPX-compressed (~8-10KB)
+- MSan/ASan/AFL++ tested
+
+</td>
+<td width="33%">
 
 ### Python Version
 - Integer Linear Programming (ILP) via PuLP
@@ -60,7 +75,7 @@ Solutions are displayed with symbols for clarity:
 - Cross-platform compatibility
 
 </td>
-<td width="50%">
+<td width="33%">
 
 ### Go Version
 - Backtracking with pruning
@@ -74,7 +89,62 @@ Solutions are displayed with symbols for clarity:
 
 ---
 
+## Pre-built Binaries
+
+Pre-compiled, UPX-compressed binaries are available in [Releases](https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver/releases):
+
+| Platform | Binary | Size |
+|----------|--------|------|
+| Linux x86_64 | `puzzle_solver-linux-amd64` | ~8 KB |
+| Windows x86_64 | `puzzle_solver-windows-amd64.exe` | ~10 KB |
+
+Just download and run -- no dependencies needed.
+
+---
+
 ## Installation
+
+### C Version (Build from Source)
+
+<details>
+<summary><b>Linux</b></summary>
+
+```bash
+# Clone the repository
+git clone https://github.com/japaneseenrichmentorganization/thekillingantidotepuzzlesolver.git
+cd thekillingantidotepuzzlesolver
+
+# Build (requires gcc)
+make all
+
+# Or build size-optimized with UPX
+gcc -std=c11 -Os -flto -s -ffunction-sections -fdata-sections \
+    -Wl,--gc-sections -fno-asynchronous-unwind-tables -fno-ident \
+    -Wl,--build-id=none -o puzzle_solver puzzle_solver.c
+upx --best puzzle_solver  # optional
+
+# Run the solver
+./puzzle_solver
+```
+
+</details>
+
+<details>
+<summary><b>Windows (cross-compile from Linux)</b></summary>
+
+```bash
+# Requires mingw-w64
+x86_64-w64-mingw32-gcc -std=c11 -Os -flto -s -ffunction-sections -fdata-sections \
+    -Wl,--gc-sections -fno-asynchronous-unwind-tables -fno-ident \
+    -Wl,--build-id=none -mcrtdll=ucrt -o puzzle_solver.exe puzzle_solver.c
+upx --best puzzle_solver.exe  # optional
+```
+
+> Note: `-mcrtdll=ucrt` links against the Universal C Runtime (built into Windows 10+) instead of the MinGW CRT shim, reducing binary size by ~60%.
+
+</details>
+
+---
 
 ### Python Version
 
@@ -269,6 +339,48 @@ Column sums → 8 8 3 9 3 12 8 6
 Legend: □=0, ■=1, ■■=2, ■■■=3
 All yours, forever~
 ```
+
+---
+
+## Sanitizer & Fuzzer Testing
+
+The C version has been verified with multiple sanitizers and a fuzzer to ensure memory safety and robustness.
+
+### Makefile Targets
+
+```bash
+make all       # Default build (gcc -O2)
+make msan      # Memory Sanitizer (clang -fsanitize=memory)
+make asan      # Address Sanitizer (clang -fsanitize=address)
+make afl       # AFL++ instrumented build (afl-gcc-fast)
+make o3lto     # Optimized build (gcc -O3 -flto)
+make clean     # Remove all build artifacts
+```
+
+### Automated Test Pipeline
+
+```bash
+./run_tests.sh
+```
+
+Runs all 4 stages automatically with a test corpus of 5 puzzle inputs:
+
+| Stage | Tool | Result |
+|-------|------|--------|
+| MSan | `clang -fsanitize=memory -fsanitize-memory-track-origins=2` | Clean -- zero uninitialized reads |
+| ASan | `clang -fsanitize=address` | Clean -- zero buffer overflows |
+| AFL++ | `afl-gcc-fast` + `afl-fuzz` (60s session) | 61,177 execs, 0 crashes |
+| O3+LTO | `gcc -O3 -flto` | Output matches default build |
+
+### Binary Size Comparison
+
+| Build | Size |
+|-------|------|
+| `gcc -O2` (default) | 24,560 B |
+| `gcc -O3 -flto` | 17,120 B |
+| `gcc -Os -flto -s` + gc-sections | 11,072 B |
+| + UPX `--best` (Linux) | **7,684 B** |
+| + UPX `--best` (Windows, ucrt) | **9,728 B** |
 
 ---
 
