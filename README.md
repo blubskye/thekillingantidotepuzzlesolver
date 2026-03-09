@@ -91,14 +91,29 @@ Solutions are displayed with symbols for clarity:
 
 ## Pre-built Binaries
 
-Pre-compiled, UPX-compressed binaries are available in [Releases](https://github.com/blubskye/thekillingantidotepuzzlesolver/thekillingantidotepuzzlesolver/releases):
+Pre-compiled, UPX-compressed binaries are available in [Releases](https://github.com/blubskye/thekillingantidotepuzzlesolver/releases):
 
-| Platform | Binary | Size |
-|----------|--------|------|
-| Linux x86_64 | `puzzle_solver-linux-amd64` | ~8 KB |
-| Windows x86_64 | `puzzle_solver-windows-amd64.exe` | ~10 KB |
+| Platform | Binary | Size | Signed |
+|----------|--------|------|--------|
+| Linux x86_64 | `puzzle_solver-linux-amd64` | ~8 KB | N/A |
+| Windows x86_64 | `puzzle_solver-windows-amd64.exe` | ~12 KB | Yes (self-signed) |
 
 Just download and run -- no dependencies needed.
+
+### Why is the Windows binary signed?
+
+The Windows binary is built with aggressive size optimizations (`-Os -flto -s`) and compressed with UPX. These techniques are also used by malware packers, which causes many antivirus engines to flag the binary as suspicious even though it is clean.
+
+The binary is signed with a self-signed Authenticode certificate using `osslsigncode` to give AV scanners and Windows SmartScreen a trust anchor. Because it is **self-signed** (not issued by a commercial CA like DigiCert), Windows will still show an "Unknown Publisher" SmartScreen prompt on first run -- this is expected and safe to dismiss.
+
+The public certificate (`certs/signing.crt`) is included in the repository so you can verify the signature yourself:
+
+```bash
+# Verify the signature (requires osslsigncode)
+osslsigncode verify -in puzzle_solver-windows-amd64.exe -CAfile certs/signing.crt
+```
+
+If you are still concerned, you can build from source in under 30 seconds -- see the [C Version build instructions](#c-version-build-from-source) below.
 
 ---
 

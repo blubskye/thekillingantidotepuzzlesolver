@@ -1,0 +1,12 @@
+# Private key - never commit
+certs/signing.key
+certs/signing.pfx
+
+# Build artifacts
+puzzle_solver
+puzzle_solver_msan
+puzzle_solver_asan
+puzzle_solver_afl
+puzzle_solver_o3lto
+afl_output/
+afl_input/
