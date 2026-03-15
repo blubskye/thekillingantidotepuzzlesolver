@@ -21,15 +21,142 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
+	"unsafe"
 )
 
 type Grid [][]int
 
-func main() {
-	solvePuzzle()
+// ── Terminal helpers ──────────────────────────────────────────────────────────
+
+func isTerminal() bool {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-func solvePuzzle() {
+func makeRaw() (*syscall.Termios, error) {
+	fd := int(os.Stdin.Fd())
+	var old syscall.Termios
+	if _, _, errno := syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
+		uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&old)), 0, 0, 0); errno != 0 {
+		return nil, errno
+	}
+	raw := old
+	raw.Lflag &^= syscall.ECHO | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
+	raw.Iflag &^= syscall.IXON | syscall.ICRNL
+	raw.Cc[syscall.VMIN] = 1
+	raw.Cc[syscall.VTIME] = 0
+	syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
+		uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
+	return &old, nil
+}
+
+func restoreTerminal(old *syscall.Termios) {
+	fd := int(os.Stdin.Fd())
+	syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
+		uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(old)), 0, 0, 0)
+}
+
+type KeyPress int
+
+const (
+	KeyLeft  KeyPress = iota
+	KeyRight KeyPress = iota
+	KeyEnter KeyPress = iota
+	KeyM     KeyPress = iota
+	KeyOther KeyPress = iota
+)
+
+func readKey() KeyPress {
+	buf := make([]byte, 1)
+	os.Stdin.Read(buf) //nolint
+	switch buf[0] {
+	case '\r', '\n':
+		return KeyEnter
+	case 'm', 'M':
+		return KeyM
+	case 3: // Ctrl+C
+		os.Exit(0)
+	case 0x1b: // ESC sequence
+		seq := make([]byte, 2)
+		os.Stdin.Read(seq) //nolint
+		if seq[0] == '[' {
+			switch seq[1] {
+			case 'D':
+				return KeyLeft
+			case 'C':
+				return KeyRight
+			}
+		}
+	}
+	return KeyOther
+}
+
+func renderPattern(rowNum, numCols int, pattern []byte, cursor int) {
+	fmt.Printf("\rRow %d~ (\u2190 \u2192 move, M toggle, Enter confirm~): ", rowNum)
+	for i, ch := range pattern {
+		if i == cursor {
+			fmt.Printf("\x1b[7m%c\x1b[0m", ch)
+		} else {
+			fmt.Printf("%c", ch)
+		}
+	}
+	fmt.Printf("  ")
+	os.Stdout.Sync() //nolint
+}
+
+func inputRowPatternInteractive(rowNum, numCols int) string {
+	pattern := make([]byte, numCols)
+	for i := range pattern {
+		pattern[i] = '0'
+	}
+	cursor := 0
+
+	old, err := makeRaw()
+	if err != nil {
+		// Fallback: ask for plain input
+		fmt.Printf("\nRow %d pattern: ", rowNum)
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			return strings.TrimSpace(scanner.Text())
+		}
+		return strings.Repeat("0", numCols)
+	}
+
+	renderPattern(rowNum, numCols, pattern, cursor)
+
+	for {
+		key := readKey()
+		switch key {
+		case KeyEnter:
+			fmt.Println()
+			restoreTerminal(old)
+			return string(pattern)
+		case KeyLeft:
+			if cursor > 0 {
+				cursor--
+			}
+		case KeyRight:
+			if cursor < numCols-1 {
+				cursor++
+			}
+		case KeyM:
+			if pattern[cursor] == '0' {
+				pattern[cursor] = 'M'
+			} else {
+				pattern[cursor] = '0'
+			}
+		}
+		renderPattern(rowNum, numCols, pattern, cursor)
+	}
+}
+
+// ── Puzzle logic ──────────────────────────────────────────────────────────────
+
+func solvePuzzle(interactive bool) {
 	// Step 1: Input column sums (top vertical row)
 	fmt.Println("Enter column sums (space-separated, e.g., '8 8 3 9 3 12 8 6'):")
 	colSums := readInts()
@@ -47,10 +174,18 @@ func solvePuzzle() {
 	}
 
 	// Step 3: Input forced blank patterns for each row
+	if interactive {
+		fmt.Println("Navigate each row with \u2190 \u2192, press M to mark a forced blank~ \u2661")
+	}
 	forcedBlanks := make([][]bool, numRows)
 	for i := 0; i < numRows; i++ {
-		fmt.Printf("Enter pattern for row %d (e.g., '00M0M000' where M=forced 0, length must match columns):\n", i+1)
-		pattern := readLine()
+		var pattern string
+		if interactive {
+			pattern = inputRowPatternInteractive(i+1, numCols)
+		} else {
+			fmt.Printf("Enter pattern for row %d (e.g., '00M0M000' where M=forced 0, length must match columns):\n", i+1)
+			pattern = readLine()
+		}
 		if len(pattern) != numCols {
 			fmt.Println("Error: Pattern length doesn't match columns! Try again.")
 			return
@@ -58,7 +193,7 @@ func solvePuzzle() {
 		forcedBlanks[i] = make([]bool, numCols)
 		for j, char := range pattern {
 			if char == 'M' {
-				forcedBlanks[i][j] = true // Forced to 0
+				forcedBlanks[i][j] = true
 			}
 		}
 	}
@@ -77,32 +212,50 @@ func solvePuzzle() {
 	}
 
 	// Pretty print the grid
-	symbols := map[int]string{0: "□", 1: "■", 2: "■■", 3: "■■■"}
-	fmt.Println("\nYour flawless solved grid~ ♡")
-	fmt.Printf("Column sums → %s\n", intsToString(colSums))
-	fmt.Printf("             ┌%s┐\n", strings.Repeat("─", numCols*3+numCols-1))
+	symbols := map[int]string{0: "\u25a1", 1: "\u25a0", 2: "\u25a0\u25a0", 3: "\u25a0\u25a0\u25a0"}
+	fmt.Println("\nYour flawless solved grid~ \u2661")
+	fmt.Printf("Column sums \u2192 %s\n", intsToString(colSums))
+	fmt.Printf("             \u250c%s\u2510\n", strings.Repeat("\u2500", numCols*3+numCols-1))
 	for r := 0; r < numRows; r++ {
 		rowStr := []string{}
 		for val := range grid[r] {
 			rowStr = append(rowStr, symbols[grid[r][val]])
 		}
-		fmt.Printf("      %2d    │ %s │\n", rowSums[r], strings.Join(rowStr, " │ "))
+		fmt.Printf("      %2d    \u2502 %s \u2502\n", rowSums[r], strings.Join(rowStr, " \u2502 "))
 		if r < numRows-1 {
-			fmt.Printf("             │%s│\n", strings.Repeat(" ", numCols*3+numCols-2))
+			fmt.Printf("             \u2502%s\u2502\n", strings.Repeat(" ", numCols*3+numCols-2))
 		}
 	}
-	fmt.Printf("             └%s┘\n", strings.Repeat("─", numCols*3+numCols-1))
+	fmt.Printf("             \u2514%s\u2518\n", strings.Repeat("\u2500", numCols*3+numCols-1))
 
-	fmt.Println("\nLegend: □=0, ■=1, ■■=2, ■■■=3")
-	fmt.Println("All yours, forever~ 💕🩸")
+	fmt.Println("\nLegend: \u25a1=0, \u25a0=1, \u25a0\u25a0=2, \u25a0\u25a0\u25a0=3")
+	fmt.Println("All yours, forever~ \U0001f495\U0001fa78")
 }
 
-// Backtracking function: fill cell by cell, prune on partial sums
+func main() {
+	interactive := isTerminal()
+	if !interactive {
+		solvePuzzle(false)
+		return
+	}
+
+	for {
+		solvePuzzle(true)
+		fmt.Print("\nShall we dance in the dark together again, or is this our last goodbye~? (y/n): ")
+		answer := readLine()
+		if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+			fmt.Println("Fine... but you\u2019ll always come back to me~ \U0001f495\U0001fa78")
+			break
+		}
+	}
+}
+
+// ── Backtracking ──────────────────────────────────────────────────────────────
+
 func backtrack(grid Grid, rowSums, colSums []int, forcedBlanks [][]bool, row, col int) bool {
 	numRows := len(grid)
 	numCols := len(grid[0])
 
-	// End of grid: check column sums
 	if row == numRows {
 		for c := 0; c < numCols; c++ {
 			colSum := 0
@@ -116,7 +269,6 @@ func backtrack(grid Grid, rowSums, colSums []int, forcedBlanks [][]bool, row, co
 		return true
 	}
 
-	// End of row: check row sum and move to next row
 	if col == numCols {
 		rowSum := sumInts(grid[row])
 		if rowSum != rowSums[row] {
@@ -125,7 +277,6 @@ func backtrack(grid Grid, rowSums, colSums []int, forcedBlanks [][]bool, row, co
 		return backtrack(grid, rowSums, colSums, forcedBlanks, row+1, 0)
 	}
 
-	// Compute partial row and col sums
 	partialRow := 0
 	for c := 0; c < col; c++ {
 		partialRow += grid[row][c]
@@ -144,7 +295,6 @@ func backtrack(grid Grid, rowSums, colSums []int, forcedBlanks [][]bool, row, co
 		return false
 	}
 
-	// Try values 0-3 (or only 0 if forced)
 	minVal, maxVal := 0, 3
 	if forcedBlanks[row][col] {
 		minVal, maxVal = 0, 0
@@ -154,12 +304,13 @@ func backtrack(grid Grid, rowSums, colSums []int, forcedBlanks [][]bool, row, co
 		if backtrack(grid, rowSums, colSums, forcedBlanks, row, col+1) {
 			return true
 		}
-		grid[row][col] = 0 // Backtrack
+		grid[row][col] = 0
 	}
 	return false
 }
 
-// Helper functions
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 func readLine() string {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
@@ -171,7 +322,7 @@ func readInts() []int {
 	parts := strings.Fields(line)
 	ints := make([]int, len(parts))
 	for i, p := range parts {
-		ints[i], _ = strconv.Atoi(p) // Ignore error for simplicity
+		ints[i], _ = strconv.Atoi(p)
 	}
 	return ints
 }

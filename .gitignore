@@ -8,5 +8,12 @@ puzzle_solver_msan
 puzzle_solver_asan
 puzzle_solver_afl
 puzzle_solver_o3lto
+puzzle_solver_parallel
+puzzle_solver_plain_c
+puzzle_solver_plainc.exe
+puzzle_solver.zip
 afl_output/
 afl_input/
+
+# Misc
+cookie.txt

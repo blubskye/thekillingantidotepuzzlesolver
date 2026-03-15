@@ -24,6 +24,7 @@ BIN_MSAN     = puzzle_solver_msan
 BIN_ASAN     = puzzle_solver_asan
 BIN_AFL      = puzzle_solver_afl
 BIN_O3LTO    = puzzle_solver_o3lto
+BIN_PARALLEL = puzzle_solver_parallel
 BIN_LINUX    = puzzle_solver-linux-amd64
 BIN_WINDOWS  = puzzle_solver-windows-amd64.exe
 BIN_WIN_SIGN = puzzle_solver-windows-amd64-signed.exe
@@ -39,7 +40,7 @@ CFLAGS_RELEASE = $(CFLAGS_COMMON) -Os -flto -s -ffunction-sections -fdata-sectio
 	-fno-asynchronous-unwind-tables -fno-ident -fmerge-all-constants
 LDFLAGS_RELEASE = -Wl,--gc-sections -Wl,--build-id=none
 
-.PHONY: all msan asan afl o3lto release sign gen-cert clean
+.PHONY: all msan asan afl o3lto parallel release sign gen-cert clean
 
 all: $(BIN_DEFAULT)
 
@@ -69,6 +70,11 @@ o3lto: $(BIN_O3LTO)
 
 $(BIN_O3LTO): $(SRC)
 	$(CC_GCC) $(CFLAGS_COMMON) -O3 -flto -DNDEBUG -o $@ $<
+
+parallel: $(BIN_PARALLEL)
+
+$(BIN_PARALLEL): $(SRC)
+	$(CC_GCC) $(CFLAGS_COMMON) -O3 -flto -DNDEBUG -fopenmp -o $@ $<
 
 release: $(BIN_LINUX) $(BIN_WINDOWS)
 
