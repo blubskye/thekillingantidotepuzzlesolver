@@ -21,8 +21,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
-	"unsafe"
 )
 
 type Grid [][]int
@@ -37,28 +35,6 @@ func isTerminal() bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-func makeRaw() (*syscall.Termios, error) {
-	fd := int(os.Stdin.Fd())
-	var old syscall.Termios
-	if _, _, errno := syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
-		uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&old)), 0, 0, 0); errno != 0 {
-		return nil, errno
-	}
-	raw := old
-	raw.Lflag &^= syscall.ECHO | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
-	raw.Iflag &^= syscall.IXON | syscall.ICRNL
-	raw.Cc[syscall.VMIN] = 1
-	raw.Cc[syscall.VTIME] = 0
-	syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
-		uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
-	return &old, nil
-}
-
-func restoreTerminal(old *syscall.Termios) {
-	fd := int(os.Stdin.Fd())
-	syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd),
-		uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(old)), 0, 0, 0)
-}
 
 type KeyPress int
 

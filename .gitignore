@@ -12,6 +12,13 @@ puzzle_solver_parallel
 puzzle_solver_plain_c
 puzzle_solver_plainc.exe
 puzzle_solver.zip
+puzzle_solver-c-linux-amd64.zip
+puzzle_solver-c-windows-amd64-unsigned.zip
+puzzle_solver-c-windows-amd64-signed.zip
+puzzle_solver-go-linux-amd64.zip
+puzzle_solver-go-windows-amd64.zip
+puzzle_solver-go-linux-amd64
+puzzle_solver-go-windows-amd64.exe
 afl_output/
 afl_input/
 
